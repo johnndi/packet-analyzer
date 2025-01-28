@@ -1,7 +1,7 @@
 import socket
 import struct
 import textwrap
-
+ 
 TAb_1 = '\t - '
 TAB_2 = '\t\t - '
 TAB_3 = '\t\t\t - '
@@ -12,10 +12,19 @@ DATA_TAB_2 = '\t\t  '
 Data_TAB_3 = '\t\t\t  '
 Data_TAB_4 = '\t\t\t\t  '   
 def main():
-    import pcap
-    conn = pcap.pcap(name=None, promisc=True, immediate=True, timeout_ms=50)
+    # Create a raw socket
+    conn = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
+    conn2 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
+    # Bind the socket to a specific interface
+    conn.bind(('eth0', 0))
+    conn2.bind(('wlan0', 0))
+    
+    print('\nNetwork Sniffer:')
+    print(TAb_1 + 'Listening on interface eth0 and wlan0')
 
     while True:
+        raw_data, addr = conn2.recvfrom(65535)
+        dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
         raw_data, addr = conn.recvfrom(65535)
         dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
         print('\nEthernet Frame:')
@@ -23,7 +32,7 @@ def main():
 
         if eth_proto == 8:
             version, ihl, ttl, proto, src_ip, dest_ip, data = ip_packet(data)
-            print(TAb_2 + 'IPv4:')
+            print(TAB_2 + 'IPv4:')
             print(TAB_3 + 'Version: {}, IHL: {}, TTL: {}, Protocol: {}'.format(version, ihl, ttl, proto))
             print(TAB_4 + 'Source: {}, Destination: {}'.format(src_ip, dest_ip))
 
@@ -42,11 +51,11 @@ def main():
                 print(format_multi_line(DATA_TAB_1, data[20:]))
 
             elif proto == 17:
-                udp_src_port, udp_dest_port, length = struct.unpack('! H H H', data[:8])
+                udp_src_port, udp_dest_port, length = struct.unpack('! H H H', data[:6])
                 print(TAB_2 + 'UDP Packet:')
                 print(TAB_3 + 'Source Port: {}, Destination Port: {}, Length: {}'.format(udp_src_port, udp_dest_port, length))
                 print(TAB_3 + 'Data:')
-                print(format_multi_line(DATA_TAB_1, data[8:]))
+                print(format_multi_line(DATA_TAB_1, data[6:]))
 
             else:
                 print(TAB_2 + 'Unknown Protocol: {}'.format(proto)) 
@@ -91,10 +100,9 @@ def tcp_segment(data):
     flag_psh = (offset_reserved_flags & 8) >> 3
     flag_rst = (offset_reserved_flags & 4) >> 2
     flag_syn = (offset_reserved_flags & 2) >> 1
+    flag_fin = offset_reserved_flags & 1
     return src_port, dest_port, seq, ack, flag_urg, flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data[offset:]  
-    return src_port, dest_port, seq, ack, flag_urg, flag-ack, flag_psh, flag_rst, flag_syn, flag_fin, data[offset:]  
-
-
+    
 # unpack UDP packet
 def udp_segment(data):
     src_port, dest_port, size = struct.unpack('! H H 2x H', data[:8])
@@ -108,6 +116,4 @@ def format_multi_line(prefix, string, size=80):
         if size % 2:
             size -= 1
     return '\n'.join([prefix + line for line in textwrap.wrap(string, size)])
-
-
 main()
