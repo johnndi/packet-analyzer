@@ -14,17 +14,16 @@ Data_TAB_4 = '\t\t\t\t  '
 def main():
     # Create a raw socket
     conn = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
-    conn2 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
+    
     # Bind the socket to a specific interface
-    conn.bind(('eth0', 0))
-    conn2.bind(('wlan0', 0))
+    conn.bind(('wlan0', 0))
+    
     
     print('\nNetwork Sniffer:')
     print(TAb_1 + 'Listening on interface eth0 and wlan0')
 
     while True:
-        raw_data, addr = conn2.recvfrom(65535)
-        dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
+      
         raw_data, addr = conn.recvfrom(65535)
         dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
         print('\nEthernet Frame:')
@@ -32,9 +31,9 @@ def main():
 
         if eth_proto == 8:
             version, ihl, ttl, proto, src_ip, dest_ip, data = ip_packet(data)
-            print(TAB_2 + 'IPv4:')
-            print(TAB_3 + 'Version: {}, IHL: {}, TTL: {}, Protocol: {}'.format(version, ihl, ttl, proto))
-            print(TAB_4 + 'Source: {}, Destination: {}'.format(src_ip, dest_ip))
+            print(TAb_1 + 'IPv4:')
+            print(TAB_2 + 'Version: {}, IHL: {}, TTL: {}, Protocol: {}'.format(version, ihl, ttl, proto))
+            print(TAB_2 + 'Source: {}, Destination: {}'.format(src_ip, dest_ip))
 
             if proto == 1:
                 icmp_type, code, checksum, data = icmp_packet(data)
